@@ -10,7 +10,6 @@ This guide will walk you through setting up a backend application using Node.js,
 
 1. **Initialize the Project**:
     ```bash
-    mkdir myapp
     npm init -y
     ```
 
@@ -70,15 +69,13 @@ This guide will walk you through setting up a backend application using Node.js,
 
 #### 1. **Install Required Packages**:
     ```bash
-    npm install express mongoose dotenv cors body-parser
+    npm install express mongodb dotenv cors body-parser
     ```
 
 #### 2. **Set Up the Directory Structure**:
     ```
     my-node-app/
     ├── src/
-    │   ├── models/
-    │   │   └── User.js
     │   ├── routes/
     │   │   └── userRoutes.js
     │   ├── config/
@@ -92,14 +89,19 @@ This guide will walk you through setting up a backend application using Node.js,
 #### 3. **Configure MongoDB Connection**:
 - Create `db.js` in `src/config/`:
   ```javascript
-  const mongoose = require('mongoose');
+  const { MongoClient } = require('mongodb');
+
+  let db;
 
   const connectDB = async () => {
       try {
-          await mongoose.connect(process.env.MONGO_URI, {
+          const client = new MongoClient(process.env.MONGO_URI, {
               useNewUrlParser: true,
               useUnifiedTopology: true,
           });
+
+          await client.connect();
+          db = client.db('mydatabase');
           console.log('MongoDB Connected');
       } catch (error) {
           console.error('MongoDB connection error:', error.message);
@@ -107,45 +109,31 @@ This guide will walk you through setting up a backend application using Node.js,
       }
   };
 
-  module.exports = connectDB;
+  const getDB = () => db;
+
+  module.exports = { connectDB, getDB };
   ```
 
 - Add MongoDB connection string in `.env`:
   ```env
-  MONGO_URI=mongodb://localhost:27017/mydatabase
+  MONGO_URI=mongodb://localhost:27017
   PORT=5000
   ```
 
-#### 4. **Create a User Model**:
-- Create `User.js` in `src/models/`:
-  ```javascript
-  const mongoose = require('mongoose');
-
-  const userSchema = new mongoose.Schema({
-      name: { type: String, required: true },
-      email: { type: String, required: true, unique: true },
-      password: { type: String, required: true },
-  });
-
-  const User = mongoose.model('User', userSchema);
-
-  module.exports = User;
-  ```
-
-#### 5. **Set Up User Routes**:
+#### 4. **Set Up User Routes**:
 - Create `userRoutes.js` in `src/routes/`:
   ```javascript
   const express = require('express');
-  const User = require('../models/User');
+  const { getDB } = require('../config/db');
   const router = express.Router();
 
   // Create a new user
   router.post('/register', async (req, res) => {
       try {
           const { name, email, password } = req.body;
-          const user = new User({ name, email, password });
-          await user.save();
-          res.status(201).json(user);
+          const db = getDB();
+          const result = await db.collection('users').insertOne({ name, email, password });
+          res.status(201).json(result.ops[0]);
       } catch (error) {
           res.status(400).json({ message: error.message });
       }
@@ -154,7 +142,8 @@ This guide will walk you through setting up a backend application using Node.js,
   // Get all users
   router.get('/users', async (req, res) => {
       try {
-          const users = await User.find();
+          const db = getDB();
+          const users = await db.collection('users').find().toArray();
           res.json(users);
       } catch (error) {
           res.status(500).json({ message: error.message });
@@ -164,14 +153,14 @@ This guide will walk you through setting up a backend application using Node.js,
   module.exports = router;
   ```
 
-#### 6. **Set Up the Main Application**:
+#### 5. **Set Up the Main Application**:
 - Create `index.js` in `src/`:
   ```javascript
   const express = require('express');
   const dotenv = require('dotenv');
   const cors = require('cors');
   const bodyParser = require('body-parser');
-  const connectDB = require('./config/db');
+  const { connectDB } = require('./config/db');
   const userRoutes = require('./routes/userRoutes');
 
   dotenv.config();
