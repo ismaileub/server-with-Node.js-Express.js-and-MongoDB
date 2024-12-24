@@ -1,48 +1,96 @@
-# server-with-Node.js-Express.js-and-MongoDB
 # Getting Started with Node.js, Express.js, and MongoDB
 
-This guide will walk you through setting up a backend application using Node.js, Express.js, and MongoDB.
+This guide will walk you through setting up a backend application using Node.js, Express.js, and MongoDB, starting from scratch, even if you haven't set up your environment yet.
 
 ---
 
-## Prerequisites
+## Step 1: Simple Server with Node.js and Express.js
 
-Before starting, ensure you have the following installed on your machine:
+Start by creating a very basic server.
 
-- [Node.js](https://nodejs.org/) (includes the `npm` CLI tool)
-- [MongoDB](https://www.mongodb.com/try/download/community) (for the database server)
-- A code editor like [VS Code](https://code.visualstudio.com/)
+### Code Example
 
----
+1. Create a file named `index.js`:
 
-## Setting Up the Project
+    ```javascript
+    const express = require('express');
+    const app = express();
+    const port = 5000;
 
-Follow these steps to set up a new Node.js project:
+    app.get('/', (req, res) => {
+        res.send('Hello from my server');
+    });
 
-1. Open your terminal and create a new directory for your project:
+    app.get('/data', (req, res) => {
+        res.send('More data coming soon.....');
+    });
 
-    ```bash
-    mkdir my-node-app
-    cd my-node-app
+    app.listen(port, () => {
+        console.log(`My first server running on port: ${port}`);
+    });
     ```
 
-2. Initialize a new Node.js project:
+### Running the Server
+
+1. Install Node.js from [Node.js official website](https://nodejs.org/).
+2. Initialize your project:
 
     ```bash
     npm init -y
     ```
-
-3. Install the required dependencies:
+3. Install Express.js:
 
     ```bash
-    npm install express mongodb dotenv cors body-parser
+    npm install express
+    ```
+4. Run the server:
+
+    ```bash
+    node index.js
+    ```
+5. Visit `http://localhost:5000` in your browser to see the message.
+
+---
+
+## Step 2: Auto-Restart Server with Nodemon
+
+To avoid restarting the server manually every time you make changes, use Nodemon.
+
+1. Install Nodemon globally:
+
+    ```bash
+    npm install -g nodemon
     ```
 
-4. Create the following directory structure:
+2. Start the server with Nodemon:
+
+    ```bash
+    nodemon index.js
+    ```
+
+3. Now, any changes to your code will automatically restart the server.
+
+---
+
+## Step 3: Complete Server with Node.js, Express.js, and MongoDB
+
+Now, let's build a complete server using MongoDB and other essential packages.
+
+### Setting Up the Project
+
+1. Install required packages:
+
+    ```bash
+    npm install express mongoose dotenv cors body-parser
+    ```
+
+2. Create the following structure:
 
     ```
     my-node-app/
     ├── src/
+    │   ├── models/
+    │   │   └── User.js
     │   ├── routes/
     │   │   └── userRoutes.js
     │   ├── config/
@@ -53,84 +101,83 @@ Follow these steps to set up a new Node.js project:
     └── README.md
     ```
 
----
+### MongoDB Connection
 
-## Setting Up MongoDB Connection
-
-1. Create a `db.js` file in the `src/config/` directory:
+1. Create `db.js` in `src/config/`:
 
     ```javascript
-    const { MongoClient } = require('mongodb');
-
-    let db;
+    const mongoose = require('mongoose');
 
     const connectDB = async () => {
-      try {
-        const client = new MongoClient(process.env.MONGO_URI, {
-          useNewUrlParser: true,
-          useUnifiedTopology: true,
-        });
-
-        await client.connect();
-        db = client.db('mydatabase');
-        console.log('MongoDB Connected');
-      } catch (error) {
-        console.error('MongoDB connection error:', error.message);
-        process.exit(1);
-      }
+        try {
+            await mongoose.connect(process.env.MONGO_URI, {
+                useNewUrlParser: true,
+                useUnifiedTopology: true,
+            });
+            console.log('MongoDB Connected');
+        } catch (error) {
+            console.error('MongoDB connection error:', error.message);
+            process.exit(1);
+        }
     };
 
-    const getDB = () => {
-      if (!db) {
-        throw new Error('Database not connected');
-      }
-      return db;
-    };
-
-    module.exports = { connectDB, getDB };
+    module.exports = connectDB;
     ```
 
-2. Add your MongoDB connection string to the `.env` file:
+2. Add your MongoDB connection string to `.env`:
 
-    ```
+    ```env
     MONGO_URI=mongodb://localhost:27017/mydatabase
     PORT=5000
     ```
 
----
+### User Model
 
-## Creating a Simple API
+1. Create `User.js` in `src/models/`:
+
+    ```javascript
+    const mongoose = require('mongoose');
+
+    const userSchema = new mongoose.Schema({
+        name: { type: String, required: true },
+        email: { type: String, required: true, unique: true },
+        password: { type: String, required: true },
+    });
+
+    const User = mongoose.model('User', userSchema);
+
+    module.exports = User;
+    ```
 
 ### User Routes
 
-1. Create a `userRoutes.js` file in the `src/routes/` directory:
+1. Create `userRoutes.js` in `src/routes/`:
 
     ```javascript
     const express = require('express');
-    const { getDB } = require('../config/db');
+    const User = require('../models/User');
     const router = express.Router();
 
     // Create a new user
     router.post('/register', async (req, res) => {
-      try {
-        const db = getDB();
-        const { name, email, password } = req.body;
-        const result = await db.collection('users').insertOne({ name, email, password });
-        res.status(201).json(result.ops[0]);
-      } catch (error) {
-        res.status(400).json({ message: error.message });
-      }
+        try {
+            const { name, email, password } = req.body;
+            const user = new User({ name, email, password });
+            await user.save();
+            res.status(201).json(user);
+        } catch (error) {
+            res.status(400).json({ message: error.message });
+        }
     });
 
     // Get all users
     router.get('/users', async (req, res) => {
-      try {
-        const db = getDB();
-        const users = await db.collection('users').find().toArray();
-        res.json(users);
-      } catch (error) {
-        res.status(500).json({ message: error.message });
-      }
+        try {
+            const users = await User.find();
+            res.json(users);
+        } catch (error) {
+            res.status(500).json({ message: error.message });
+        }
     });
 
     module.exports = router;
@@ -138,14 +185,14 @@ Follow these steps to set up a new Node.js project:
 
 ### Main Application File
 
-2. Create an `index.js` file in the `src/` directory:
+1. Create `index.js` in `src/`:
 
     ```javascript
     const express = require('express');
     const dotenv = require('dotenv');
     const cors = require('cors');
     const bodyParser = require('body-parser');
-    const { connectDB } = require('./config/db');
+    const connectDB = require('./config/db');
     const userRoutes = require('./routes/userRoutes');
 
     dotenv.config();
@@ -165,7 +212,7 @@ Follow these steps to set up a new Node.js project:
     // Start server
     const PORT = process.env.PORT || 5000;
     app.listen(PORT, () => {
-      console.log(`Server is running on http://localhost:${PORT}`);
+        console.log(`Server is running on http://localhost:${PORT}`);
     });
     ```
 
@@ -178,7 +225,7 @@ Follow these steps to set up a new Node.js project:
 2. Run your Node.js application:
 
     ```bash
-    node src/index.js
+    nodemon src/index.js
     ```
 
 3. Open Postman or a browser and test the endpoints:
@@ -193,26 +240,23 @@ Follow these steps to set up a new Node.js project:
 Now that your app is set up, here are some suggestions for what you can do next:
 
 1. **Add Authentication**:
-   - Implement user authentication using libraries like `bcrypt` for password hashing and `jsonwebtoken` for token-based authentication.
+    - Implement user authentication using libraries like `bcrypt` for password hashing and `jsonwebtoken` for token-based authentication.
 
 2. **Validation**:
-   - Use `express-validator` or `Joi` for validating user input.
+    - Use `express-validator` or `Joi` for validating user input.
 
-3. **Environment Variables**:
-   - Secure sensitive information using `.env` files and tools like `dotenv`.
+3. **Advanced Error Handling**:
+    - Implement centralized error handling for cleaner code and better debugging.
 
-4. **Advanced Error Handling**:
-   - Implement centralized error handling for cleaner code and better debugging.
+4. **Deploy Your App**:
+    - Use platforms like [Heroku](https://www.heroku.com/), [Render](https://render.com/), or [AWS](https://aws.amazon.com/) to deploy your app.
 
-5. **Deploy Your App**:
-   - Use platforms like [Heroku](https://www.heroku.com/), [Render](https://render.com/), or [AWS](https://aws.amazon.com/) to deploy your app.
+5. **Add More Features**:
+    - Create CRUD operations for other entities in your app.
+    - Implement relationships between collections in MongoDB.
 
-6. **Add More Features**:
-   - Create CRUD operations for other entities in your app.
-   - Implement relationships between collections in MongoDB.
-
-7. **Use Advanced Tools**:
-   - Integrate a logging library like `winston`.
-   - Explore rate limiting with `express-rate-limit`.
+6. **Use Advanced Tools**:
+    - Integrate a logging library like `winston`.
+    - Explore rate limiting with `express-rate-limit`.
 
 For more details and examples, check out the official [Node.js documentation](https://nodejs.org/) and [MongoDB documentation](https://www.mongodb.com/docs/).
