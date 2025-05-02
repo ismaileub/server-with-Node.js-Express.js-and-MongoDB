@@ -10,12 +10,15 @@ This guide will walk you through setting up a backend application using Node.js,
 
 1. **Initialize the Project**:
     ```bash
+    
     npm init -y
+    
     ```
 
 2. **Install Express.js**:
     ```bash
     npm install express
+    
     ```
 
 3. **Create a File**:
@@ -68,8 +71,11 @@ This guide will walk you through setting up a backend application using Node.js,
 ### Step 3: Build a Complete Server with MongoDB
 
 #### 1. **Install Required Packages**:
+
     ```bash
+    
     npm install express mongodb dotenv cors body-parser
+    
     ```
 
 #### 2. **Set Up the Directory Structure**:
