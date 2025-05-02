@@ -74,23 +74,25 @@ This guide will walk you through setting up a backend application using Node.js,
 
     ```bash
     
-         npm install express mongodb dotenv cors body-parser
-    
+npm install express mongodb dotenv cors body-parser
+     
     ```
+    
+    
 
 #### 2. **Set Up the Directory Structure**:
     ```
-    my-node-app/
-    ├── src/
-    │   ├── routes/
-    │   │   └── userRoutes.js
-    │   ├── config/
-    │   │   └── db.js
-    │   └── index.js
-    ├── .env
-    ├── package.json
-    └── README.md
-    ```
+     my-node-app/
+        ├── src/
+        │   ├── routes/
+        │   │   └── userRoutes.js
+        │   ├── config/
+        │   │   └── db.js
+        │   └── index.js
+        ├── .env
+        ├── package.json
+        └── README.md      
+      ```
 
 #### 3. **Configure MongoDB Connection**:
 - Create `db.js` in `src/config/`:
